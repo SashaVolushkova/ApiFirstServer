@@ -20,10 +20,4 @@ public class PetApiImpl implements PetsApi {
         // your future implementation
         return null;
     }
-
-    @Override
-    public ResponseEntity<Pet> showPetById(String petId) {
-        // your future implementation
-        return null;
-    }
 }
