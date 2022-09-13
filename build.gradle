@@ -1,7 +1,15 @@
 plugins {
 	id 'org.springframework.boot' version '2.7.3'
 	id 'io.spring.dependency-management' version '1.0.13.RELEASE'
+	id "org.openapi.generator" version "6.1.0"
 	id 'java'
+}
+sourceSets {
+	main {
+		java {
+			srcDir "${buildDir}/openapiDir/generated/src/main/java/"
+		}
+	}
 }
 
 group = 'com.volushkova.apifirst'
@@ -10,13 +18,56 @@ sourceCompatibility = '17'
 
 repositories {
 	mavenCentral()
+	maven {
+		url "http://localhost:8081/repository/apifirst-snapshot/"
+		allowInsecureProtocol = true
+	}
 }
-
+configurations {
+	openApiYaml { transitive = false }
+}
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	// https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-ui
+	implementation group: 'org.springdoc', name: 'springdoc-openapi-ui', version: '1.6.11'
+
+	openApiYaml 'com.volushkova.apifirst:ApiFirstMock:0.0.1-SNAPSHOT'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
+task unzip(type: Copy) {
+	from zipTree(configurations.openApiYaml.singleFile).matching {
+		include 'petstore.yaml'
+	}
+	into "$buildDir/openapiDir"
+}
+
+openApiGenerate {
+	generatorName = "spring"
+	outputDir = "${buildDir}/openapiDir/generated".toString()
+	inputSpec = "${buildDir}/openapiDir/petstore.yaml".toString()
+	globalProperties = [
+			apis: "",
+			models: ""
+	]
+	apiPackage = "com.volushkova.apifirst.generated"
+	modelPackage = "com.volushkova.apifirst.generated.model"
+	skipOverwrite = true
+	configOptions = [
+			dateLibrary: "java8",
+			interfaceOnly: "true",
+			skipDefaultInterface: "true",
+			openApiNullable: "false"
+	]
+}
+
+project.tasks.openApiGenerate.dependsOn(unzip)
+project.tasks.compileJava.dependsOn(project.tasks.openApiGenerate)
+//
+//openApiGenerate.configure {
+//	mustRunAfter unzip
+//}
